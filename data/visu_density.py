@@ -2,10 +2,11 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import tensorflow_probability as tfp
 import numpy as np
+import os
 
 tfd = tfp.distributions
 
-def plot_heatmap_2d(dist, xmin=-4.0, xmax=4.0, ymin=-4.0, ymax=4.0, mesh_count=1000, name=None):
+def plot_heatmap_2d(dist, xmin=-4.0, xmax=4.0, ymin=-4.0, ymax=4.0, mesh_count=1000, path=None, name=None):
     plt.figure()
     
     x = tf.linspace(xmin, xmax, mesh_count)
@@ -21,6 +22,7 @@ def plot_heatmap_2d(dist, xmin=-4.0, xmax=4.0, ymin=-4.0, ymax=4.0, mesh_count=1
     plt.xticks([0, mesh_count * 0.25, mesh_count * 0.5, mesh_count * 0.75, mesh_count], [xmin, xmin/2, 0, xmax/2, xmax])
     plt.yticks([0, mesh_count * 0.25, mesh_count * 0.5, mesh_count * 0.75, mesh_count], [ymin, ymin/2, 0, ymax/2, ymax])
     if name:
-        plt.savefig(name + ".png", format="png")
+        if not os.path.exists(path): os.makedirs(path)
+        plt.savefig(path + name + ".png", format="png")
     else:
         plt.show()

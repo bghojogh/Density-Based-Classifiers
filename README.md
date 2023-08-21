@@ -1,5 +1,10 @@
 # Normalizing-Flow-Classifier
 
+# Related repositories
+
+- `https://github.com/LukasRinder/normalizing-flows/tree/master`
+- `https://github.com/LukasRinder/normalizing-flows/blob/master/example_training.ipynb`
+
 # Packages
 
 ```bash
