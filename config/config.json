@@ -1,0 +1,17 @@
+{
+    "stage": "train",
+    "log_path": "./log/",
+    "train": {
+        "dataset_name": "moons",
+        "dataset_size": 2000,
+        "batch_size": 800,
+        "n_classes": 2,
+        "base_lr": 1e-3,
+        "end_lr": 1e-4,
+        "max_epochs": 5e3,
+        "delta_stop_in_early_stopping": 1000,
+        "frequency_validation": 100,
+        "frequency_plot": 1000,
+        "plot_data": true
+    }
+}

@@ -3,31 +3,29 @@ import time
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import tensorflow_probability as tfp
-import os, random
+import os, random, json
 from data.visu_density import plot_heatmap_2d
 from data.plot_samples import plot_samples_2d
 from utils.train_utils import sanity_check, train_density_estimation_noTfFunction, nll
 from normalizingflows.flow_catalog import Made
 from data.data_manager import Dataset
 from tqdm import tqdm
+from typing import Dict
 tf.random.set_seed(1234)
 
-def train():
 
-    ############ load the data:
-    dataset_size = 2000  # ony necessary for toy data distributions
-    batch_size = 800
-    dataset_name = 'moons'
-    n_classes = 2
+def train(config: Dict) -> None:
 
-    for class_index in tqdm(range(n_classes), desc='Classes'):
-
+    for class_index in tqdm(range(config['train']['n_classes']), desc='Classes'):
+        # set the reset flag for training tensorflow function:
         shoud_reset = True
 
-        dataset = Dataset(dataset_name, batch_size=batch_size, classification=True, category=class_index)
+        # dataset:
+        dataset = Dataset(dataset_name=config['train']['dataset_name'], batch_size=config['train']['batch_size'], data_size=config['train']['dataset_size'], classification=True, category=class_index)
         batched_train_data, val_data, test_data = dataset.get_data()
         sample_batch = next(iter(batched_train_data))
-        plot_samples_2d(sample_batch, path=f'log/{dataset_name}/class_{class_index}/plots/', name='dataset')
+        if config['train']['plot_data']:
+            plot_samples_2d(sample_batch, path=f"log/{config['train']['dataset_name']}/class_{class_index}/plots/", name='dataset')
 
         ############ Build the Normalizing Flow:
 
@@ -63,14 +61,13 @@ def train():
         ############ Train the Normalizing Flow:
 
         # settings of training:
-        base_lr = 1e-3
-        end_lr = 1e-4
-        # max_epochs = int(5e3)  # maximum number of epochs of the training
-        max_epochs = int(100)
+        base_lr = config['train']['base_lr']
+        end_lr = config['train']['end_lr']
+        max_epochs = int(config['train']['max_epochs'])  # maximum number of epochs of the training
         learning_rate_fn = tf.keras.optimizers.schedules.PolynomialDecay(base_lr, max_epochs, end_lr, power=0.5)
 
         # initialize checkpoints:
-        checkpoint_directory = "log/{}/class_{}/tmp_{}".format(dataset_name, class_index, str(hex(random.getrandbits(32))))
+        checkpoint_directory = "log/{}/class_{}/tmp_{}".format(config['train']['dataset_name'], class_index, str(hex(random.getrandbits(32))))
         checkpoint_prefix = os.path.join(checkpoint_directory, "ckpt")
 
         # optimizer and checkpoint:
@@ -84,7 +81,7 @@ def train():
         min_train_loss = tf.convert_to_tensor(np.inf, dtype=tf.float32)
         min_val_epoch = 0
         min_train_epoch = 0
-        delta_stop = 1000  # threshold for early stopping
+        delta_stop = config['train']['delta_stop_in_early_stopping']  # threshold for early stopping
 
         t_start = time.time()  # start time
 
@@ -98,7 +95,7 @@ def train():
                 else:
                     train_loss = train_density_estimation_(maf, opt, batch)
 
-            if i % int(100) == 0:
+            if i % int(config['train']['frequency_validation']) == 0:
                 val_loss = nll(maf, val_data)
                 global_step.append(i)
                 train_losses.append(train_loss)
@@ -117,9 +114,9 @@ def train():
                 elif i - min_val_epoch > delta_stop:  # no decrease in min_val_loss for "delta_stop epochs"
                     break
 
-            if i % int(1000) == 0:
-                # plot heatmap every 1000 epochs
-                plot_heatmap_2d(maf, -4.0, 4.0, -4.0, 4.0, mesh_count=200, path=f'log/{dataset_name}/class_{class_index}/plots/heatmap/', name=f'epoch_{i}')
+            if config['train']['plot_data'] and (i % int(config['train']['frequency_plot']) == 0):
+                # plot heatmap every multiple epochs
+                plot_heatmap_2d(maf, -4.0, 4.0, -4.0, 4.0, mesh_count=200, path=f"log/{config['train']['dataset_name']}/class_{class_index}/plots/heatmap/", name=f'epoch_{i}')
 
         train_time = time.time() - t_start
 
@@ -133,10 +130,14 @@ def train():
         test_time = time.time() - t_start
 
         # plot density estimation of the best model
-        plot_heatmap_2d(maf, -4.0, 4.0, -4.0, 4.0, mesh_count=200, path=f'log/{dataset_name}/class_{class_index}/plots/', name='evaluate1') 
+        if config['train']['plot_data']:
+            plot_heatmap_2d(maf, -4.0, 4.0, -4.0, 4.0, mesh_count=200, path=f"log/{config['train']['dataset_name']}/class_{class_index}/plots/", name='evaluate1') 
 
         # plot samples of the best model
-        plot_samples_2d(maf.sample(1000), path=f'log/{dataset_name}/class_{class_index}/plots/', name='evaluate2') 
+        if config['train']['plot_data']:
+            plot_samples_2d(maf.sample(1000), path=f"log/{config['train']['dataset_name']}/class_{class_index}/plots/", name='evaluate2') 
 
 if __name__ == '__main__':
-    train()
+    with open('./config/config.json', 'r') as f:
+        config = json.load(f)
+    train(config=config)
