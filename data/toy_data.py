@@ -9,7 +9,7 @@ tfd = tfp.distributions
 
 
 # Dataset iterator for generation of dataset samples
-def generate_2d_data(data, rng=None, batch_size=1000):
+def generate_2d_data(data, rng=None, batch_size=1000, category=-1):
     if rng is None:
         rng = np.random.RandomState()
 
@@ -57,7 +57,11 @@ def generate_2d_data(data, rng=None, batch_size=1000):
         return X.astype("float32"), np.max(X)
 
     elif data == "moons":
-        data = sklearn.datasets.make_moons(n_samples=batch_size, noise=0.1)[0]
+        if category == -1:
+            data = sklearn.datasets.make_moons(n_samples=batch_size, noise=0.1)[0]
+        else:
+            X, y = sklearn.datasets.make_moons(n_samples=batch_size, noise=0.1)
+            data = X[y == category]
         data = data.astype("float32")
         data = data * 2 + np.array([-1, -0.2], dtype="float32")
         return data, np.max(data)

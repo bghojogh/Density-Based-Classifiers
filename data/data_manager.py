@@ -9,7 +9,7 @@ from utils.train_utils import shuffle_split
 from utils.types import DataType
 
 class Dataset():
-    def __init__(self, dataset_name, batch_size, data_size=2000, category=-1):
+    def __init__(self, dataset_name, batch_size, data_size=2000, category=-1, classification=False):
         self.name = dataset_name.lower()
         self.batch_size = batch_size
 
@@ -17,7 +17,10 @@ class Dataset():
                     # get train data and perform a train-validation-test split
             train_split = 0.8
             val_split = 0.1
-            samples, interval = generate_2d_data(dataset_name, batch_size=data_size)
+            if not classification:
+                samples, interval = generate_2d_data(dataset_name, batch_size=data_size)
+            else:
+                samples, interval = generate_2d_data(dataset_name, batch_size=data_size, category=category)
             train_data, self.batched_val_data, self.batched_test_data = shuffle_split(samples, train_split, val_split)
             train_dataset = tf.data.Dataset.from_tensor_slices(train_data)
             self.batched_train_data = train_dataset.batch(batch_size)
