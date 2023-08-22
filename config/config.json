@@ -6,6 +6,8 @@
         "dataset_size": 2000,
         "batch_size": 800,
         "n_classes": 2,
+        "hidden_shape": [200, 200],
+        "layers": 12,
         "base_lr": 1e-3,
         "end_lr": 1e-4,
         "max_epochs": 5e3,

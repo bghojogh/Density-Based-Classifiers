@@ -35,8 +35,8 @@ def train(config: Dict) -> None:
         ############ Build the Normalizing Flow:
 
         # settings for the network:
-        hidden_shape = [200, 200]  # hidden shape for MADE network of MAF
-        layers = 12  # number of layers of the flow
+        hidden_shape = config['train']['hidden_shape']  # hidden shape for MADE network of MAF
+        layers = config['train']['layers']  # number of layers of the flow
 
         tfd = tfp.distributions
         tfb = tfp.bijectors
@@ -141,8 +141,8 @@ def train(config: Dict) -> None:
 
 def load_checkpoint(config: Dict, class_index: int) -> tfp.distributions.TransformedDistribution:
     # settings for the network:
-    hidden_shape = [200, 200]  # hidden shape for MADE network of MAF
-    layers = 12  # number of layers of the flow
+    hidden_shape = config['train']['hidden_shape']  # hidden shape for MADE network of MAF
+    layers = config['train']['layers']  # number of layers of the flow
 
     tfd = tfp.distributions
     tfb = tfp.bijectors
