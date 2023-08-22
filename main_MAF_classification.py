@@ -11,7 +11,7 @@ from normalizingflows.flow_catalog import Made
 from data.data_manager import Dataset
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, f1_score
-from typing import Dict
+from typing import Dict, List, Tuple
 tf.random.set_seed(1234)
 
 
@@ -185,7 +185,7 @@ def load_checkpoint(config: Dict, class_index: int) -> tfp.distributions.Transfo
 
     return maf
 
-def eval(config: Dict) -> None:
+def eval(config: Dict) -> Tuple[List[int], List[int], np.ndarray, List[float], List[float]]:
     # load test data:
     for class_index in range(config['train']['n_classes']):
         test_data = np.load(config['train']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/data/test_data.npy")
@@ -227,6 +227,55 @@ def eval(config: Dict) -> None:
     print(f'accuracy: {accuracy}, f1 score: {f1score}')
     return y_pred, y_test, X_test, accuracy, f1score
 
+def eval_mesh(config: Dict) -> Tuple[List[int], np.ndarray, int]:
+    # load test data:
+    xmin, xmax, ymin, ymax, mesh_count = -4.0, 4.0, -4.0, 4.0, 200
+    x = tf.linspace(xmin, xmax, mesh_count)
+    y = tf.linspace(ymin, ymax, mesh_count)
+    X, Y = tf.meshgrid(x, y)
+    concatenated_mesh_coordinates = tf.transpose(tf.stack([tf.reshape(Y, [-1]), tf.reshape(X, [-1])]))
+    X_test = concatenated_mesh_coordinates
+
+    pred_prob = np.zeros((X_test.shape[0], config['train']['n_classes']))
+    for class_index in tqdm(range(config['train']['n_classes']), desc='Classes'):
+        # load the checkpoint for this class:
+        maf = load_checkpoint(config=config, class_index=class_index)
+
+        # perform on test dataset
+        t_start = time.time()
+        test_loss = nll(maf, X_test)
+        test_time = time.time() - t_start
+
+        # calculate the predicted probabilities:
+        prob = maf.prob(X_test)
+        prob = prob.numpy()
+        pred_prob[:, class_index] = prob
+
+        # plot density estimation of the best model
+        if config['train']['plot_data']:
+            plot_heatmap_2d(maf, -4.0, 4.0, -4.0, 4.0, mesh_count=200, path=config['eval']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/plots/", name='evaluate1') 
+
+        # plot samples of the best model
+        if config['train']['plot_data']:
+            plot_samples_2d(maf.sample(1000), path=config['eval']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/plots/", name='evaluate2') 
+
+    # calculate the predicted classes:
+    not_classified_indices = np.where(pred_prob.sum(axis=1)==0)[0].tolist()
+    y_pred = np.argmax(pred_prob, axis=1).tolist()
+    y_pred_final = [y_pred[i] if (i not in not_classified_indices) else np.max(y_pred)+1 for i in range(len(y_pred))]
+
+    # plot the predicted labels on the mesh:
+    plt.close()
+    if config['train']['n_classes'] == 2:
+        color_map = 'brg'
+    else:
+        color_map = 'Spectral'
+    plt.imshow(tf.transpose(tf.reshape(y_pred_final, (mesh_count, mesh_count))), origin="lower", cmap=color_map)
+    if not os.path.exists(config['eval']['log_path']+f"{config['train']['dataset_name']}/plots/"): os.makedirs(config['eval']['log_path']+f"{config['train']['dataset_name']}/plots/")
+    plt.savefig(config['eval']['log_path'] + f"{config['train']['dataset_name']}/plots/" + f"{config['train']['dataset_name']}_predicted.png", format="png", dpi=300)
+
+    return y_pred_final, X_test, mesh_count
+
 if __name__ == '__main__':
     with open('./config/config.json', 'r') as f:
         config = json.load(f)
@@ -234,3 +283,5 @@ if __name__ == '__main__':
         train(config=config)
     elif config['stage'] == 'eval':
         eval(config=config)
+    elif config['stage'] == 'eval_mesh':
+        eval_mesh(config=config)

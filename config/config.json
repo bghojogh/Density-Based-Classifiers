@@ -1,5 +1,5 @@
 {
-    "stage": "eval",
+    "stage": "eval_mesh",
     "train": {
         "log_path": "./log_train/",
         "dataset_name": "moons",
