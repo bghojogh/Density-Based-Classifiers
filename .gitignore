@@ -1,4 +1,5 @@
-log/
+log_train/
+log_eval/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

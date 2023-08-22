@@ -22,6 +22,7 @@ class Dataset():
             else:
                 samples, interval = generate_2d_data(dataset_name, batch_size=data_size, category=category)
             train_data, self.batched_val_data, self.batched_test_data = shuffle_split(samples, train_split, val_split)
+            self.train_data = train_data
             train_dataset = tf.data.Dataset.from_tensor_slices(train_data)
             self.batched_train_data = train_dataset.batch(batch_size)
             self.intervals = [interval, interval]
@@ -96,3 +97,6 @@ class Dataset():
 
     def get_data(self):
         return self.batched_train_data, self.batched_val_data, self.batched_test_data
+    
+    def get_data2(self):
+        return self.batched_train_data, self.train_data, self.batched_val_data, self.batched_test_data

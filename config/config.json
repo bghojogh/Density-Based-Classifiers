@@ -1,7 +1,7 @@
 {
     "stage": "train",
-    "log_path": "./log/",
     "train": {
+        "log_path": "./log_train/",
         "dataset_name": "moons",
         "dataset_size": 2000,
         "batch_size": 800,

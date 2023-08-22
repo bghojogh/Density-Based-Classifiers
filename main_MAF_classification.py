@@ -22,19 +22,20 @@ def train(config: Dict) -> None:
 
         # dataset:
         dataset = Dataset(dataset_name=config['train']['dataset_name'], batch_size=config['train']['batch_size'], data_size=config['train']['dataset_size'], classification=True, category=class_index)
-        batched_train_data, val_data, test_data = dataset.get_data()
+        batched_train_data, train_data, val_data, test_data = dataset.get_data2()
+        if not os.path.exists(config['train']['log_path']+f"{config['train']['dataset_name']}/data/"): os.makedirs(config['train']['log_path']+f"{config['train']['dataset_name']}/data/")
+        np.save(config['train']['log_path']+f"{config['train']['dataset_name']}/data/train_data.npy", train_data)
+        np.save(config['train']['log_path']+f"{config['train']['dataset_name']}/data/val_data.npy", val_data)
+        np.save(config['train']['log_path']+f"{config['train']['dataset_name']}/data/test_data.npy", test_data)
         sample_batch = next(iter(batched_train_data))
         if config['train']['plot_data']:
-            plot_samples_2d(sample_batch, path=f"log/{config['train']['dataset_name']}/class_{class_index}/plots/", name='dataset')
+            plot_samples_2d(sample_batch, path=config['train']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/plots/", name='dataset')
 
         ############ Build the Normalizing Flow:
 
         # settings for the network:
         hidden_shape = [200, 200]  # hidden shape for MADE network of MAF
         layers = 12  # number of layers of the flow
-
-        if class_index == 1:
-            tf.keras.backend.clear_session()
 
         tfd = tfp.distributions
         tfb = tfp.bijectors
@@ -67,7 +68,7 @@ def train(config: Dict) -> None:
         learning_rate_fn = tf.keras.optimizers.schedules.PolynomialDecay(base_lr, max_epochs, end_lr, power=0.5)
 
         # initialize checkpoints:
-        checkpoint_directory = "log/{}/class_{}/tmp_{}".format(config['train']['dataset_name'], class_index, str(hex(random.getrandbits(32))))
+        checkpoint_directory = config['train']['log_path']+"{}/class_{}/tmp_{}".format(config['train']['dataset_name'], class_index, str(hex(random.getrandbits(32))))
         checkpoint_prefix = os.path.join(checkpoint_directory, "ckpt")
 
         # optimizer and checkpoint:
@@ -116,7 +117,7 @@ def train(config: Dict) -> None:
 
             if config['train']['plot_data'] and (i % int(config['train']['frequency_plot']) == 0):
                 # plot heatmap every multiple epochs
-                plot_heatmap_2d(maf, -4.0, 4.0, -4.0, 4.0, mesh_count=200, path=f"log/{config['train']['dataset_name']}/class_{class_index}/plots/heatmap/", name=f'epoch_{i}')
+                plot_heatmap_2d(maf, -4.0, 4.0, -4.0, 4.0, mesh_count=200, path=config['train']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/plots/heatmap/", name=f'epoch_{i}')
 
         train_time = time.time() - t_start
 
@@ -131,11 +132,11 @@ def train(config: Dict) -> None:
 
         # plot density estimation of the best model
         if config['train']['plot_data']:
-            plot_heatmap_2d(maf, -4.0, 4.0, -4.0, 4.0, mesh_count=200, path=f"log/{config['train']['dataset_name']}/class_{class_index}/plots/", name='evaluate1') 
+            plot_heatmap_2d(maf, -4.0, 4.0, -4.0, 4.0, mesh_count=200, path=config['train']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/plots/", name='evaluate1') 
 
         # plot samples of the best model
         if config['train']['plot_data']:
-            plot_samples_2d(maf.sample(1000), path=f"log/{config['train']['dataset_name']}/class_{class_index}/plots/", name='evaluate2') 
+            plot_samples_2d(maf.sample(1000), path=config['train']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/plots/", name='evaluate2')
 
 if __name__ == '__main__':
     with open('./config/config.json', 'r') as f:
