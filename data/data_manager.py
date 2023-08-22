@@ -57,10 +57,10 @@ class Dataset():
         #celeb should be proccessed while training
         elif dataset_name == "celeb":
             self.data_type = DataType.celeb
-            self.batched_train_data, self.batched_val_data, self.batched_test_data, interval = load_celeb(logit_space=True, batch_size=128, shuffle=True)
+            self.batched_train_data, self.batched_val_data, self.batched_test_data, interval = load_and_preprocess_celeb(logit_space=True, batch_size=128, shuffle=True)
             
             # assumes batch size first
-            sample_batch = next(iter(batched_train_data))
+            sample_batch = next(iter(self.batched_train_data))
             celeb_shape = sample_batch["image"].shape[1:]
             input_shape = celeb_shape[0] * celeb_shape[1] * celeb_shape[2]
             
