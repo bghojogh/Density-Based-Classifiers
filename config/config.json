@@ -1,5 +1,5 @@
 {
-    "stage": "train",
+    "stage": "eval",
     "train": {
         "log_path": "./log_train/",
         "dataset_name": "moons",
@@ -13,5 +13,8 @@
         "frequency_validation": 100,
         "frequency_plot": 1000,
         "plot_data": true
+    },
+    "eval": {
+        "log_path": "./log_eval/"
     }
 }
