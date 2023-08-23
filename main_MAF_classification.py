@@ -277,7 +277,7 @@ def eval_mesh(config: Dict) -> Tuple[List[int], np.ndarray, int]:
     return y_pred_final, X_test, mesh_count
 
 if __name__ == '__main__':
-    with open('./config/config.json', 'r') as f:
+    with open('./config/config_maf.json', 'r') as f:
         config = json.load(f)
     if config['stage'] == 'train':
         train(config=config)
