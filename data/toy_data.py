@@ -21,7 +21,11 @@ def generate_2d_data(data, rng=None, batch_size=1000, category=-1):
 
 
     elif data == "circles":
-        data = sklearn.datasets.make_circles(n_samples=batch_size, factor=.5, noise=0.08)[0]
+        if category == -1:
+            data = sklearn.datasets.make_circles(n_samples=batch_size, factor=.5, noise=0.08)[0]
+        else:
+            X, y = sklearn.datasets.make_circles(n_samples=batch_size, factor=.5, noise=0.08)
+            data = X[y == category]
         data = data.astype("float32")
         data *= 3
         return data, np.max(data)
