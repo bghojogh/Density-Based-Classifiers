@@ -28,8 +28,10 @@ def train(config: Dict) -> None:
         np.save(config['train']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/data/train_data.npy", train_data)
         np.save(config['train']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/data/val_data.npy", val_data)
         np.save(config['train']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/data/test_data.npy", test_data)
-        sample_batch = next(iter(batched_train_data))
+        n_dimensions = train_data.shape[1]
         if config['train']['plot_data']:
+            if n_dimensions != 2: raise AssertionError('The dimensionality of data is not 2 and cannot be plotted! Turn off plot_data in the config.')
+            sample_batch = next(iter(batched_train_data))
             plot_samples_2d(sample_batch, path=config['train']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/plots/", name='dataset')
 
         ############ Build the Normalizing Flow:
@@ -47,8 +49,8 @@ def train(config: Dict) -> None:
         # build the network:
         bijectors = []
         for i in range(0, layers):
-            bijectors.append(tfb.MaskedAutoregressiveFlow(shift_and_log_scale_fn = Made(params=2, hidden_units=hidden_shape, activation="relu")))
-            bijectors.append(tfb.Permute(permutation=[1, 0]))  # data permutation after layers of MAF
+            bijectors.append(tfb.MaskedAutoregressiveFlow(shift_and_log_scale_fn = Made(params=n_dimensions, hidden_units=hidden_shape, activation="relu")))
+            bijectors.append(tfb.Permute(permutation=[i for i in range(n_dimensions)][::-1]))  # data permutation after layers of MAF
 
         bijector = tfb.Chain(bijectors=list(reversed(bijectors)), name='chain_of_maf')
 

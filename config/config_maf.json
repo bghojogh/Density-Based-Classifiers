@@ -1,5 +1,5 @@
 {
-    "stage": "eval_mesh",
+    "stage": "train",
     "train": {
         "log_path": "./log_train/",
         "dataset_name": "circles",

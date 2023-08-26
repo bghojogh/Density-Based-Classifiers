@@ -24,8 +24,10 @@ def train(config: Dict):
         np.save(config['train']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/data/train_data.npy", train_data)
         np.save(config['train']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/data/val_data.npy", val_data)
         np.save(config['train']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/data/test_data.npy", test_data)
-        sample_batch = next(iter(batched_train_data))
+        n_dimensions = train_data.shape[1]
         if config['train']['plot_data']:
+            if n_dimensions != 2: raise AssertionError('The dimensionality of data is not 2 and cannot be plotted! Turn off plot_data in the config.')
+            sample_batch = next(iter(batched_train_data))
             plot_samples_2d(sample_batch, path=config['train']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/plots/", name='dataset')
 
         # GMM train:
