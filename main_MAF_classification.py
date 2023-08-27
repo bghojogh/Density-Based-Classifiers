@@ -364,6 +364,12 @@ def eval(config: Dict) -> Tuple[List[int], List[int], np.ndarray, List[float], L
     return y_pred, y_test, X_test, accuracy, f1score
 
 def eval_mesh(config: Dict) -> Tuple[List[int], np.ndarray, int]:
+    # get the number of classes:
+    if config['train']['data_type'] == 'toy_data':
+        n_classes = config['train']['toy_data']['n_classes']
+    elif config['train']['data_type'] == 'real_data':
+        n_classes = len([f.path for f in os.scandir(config['train']['log_path']) if f.is_dir() and 'class_' in f.path])
+
     # load test data:
     xmin, xmax, ymin, ymax, mesh_count = -4.0, 4.0, -4.0, 4.0, 200
     x = tf.linspace(xmin, xmax, mesh_count)
@@ -372,8 +378,8 @@ def eval_mesh(config: Dict) -> Tuple[List[int], np.ndarray, int]:
     concatenated_mesh_coordinates = tf.transpose(tf.stack([tf.reshape(Y, [-1]), tf.reshape(X, [-1])]))
     X_test = concatenated_mesh_coordinates
 
-    pred_prob = np.zeros((X_test.shape[0], config['train']['n_classes']))
-    for class_index in tqdm(range(config['train']['n_classes']), desc='Classes'):
+    pred_prob = np.zeros((X_test.shape[0], n_classes))
+    for class_index in tqdm(range(n_classes), desc='Classes'):
         # load the checkpoint for this class:
         maf = load_checkpoint(config=config, class_index=class_index, n_dimensions=X_test.shape[1])
 
@@ -402,8 +408,9 @@ def eval_mesh(config: Dict) -> Tuple[List[int], np.ndarray, int]:
 
     # plot the predicted labels on the mesh:
     plt.close()
-    if config['train']['n_classes'] == 2:
-        color_map = 'brg'
+    if n_classes == 2:
+        # color_map = 'brg'
+        color_map = 'bwr'
     else:
         color_map = 'Spectral'
     plt.imshow(tf.transpose(tf.reshape(y_pred_final, (mesh_count, mesh_count))), origin="lower", cmap=color_map)

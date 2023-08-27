@@ -1,5 +1,6 @@
 # See: https://scikit-learn.org/stable/modules/generated/sklearn.mixture.GaussianMixture.html#sklearn.mixture.GaussianMixture
 import numpy as np
+import pandas as pd
 from sklearn.mixture import GaussianMixture
 from tqdm import tqdm
 from typing import Dict, List, Tuple
@@ -10,39 +11,57 @@ from data.data_manager import Dataset
 from sklearn.metrics import accuracy_score, f1_score
 import matplotlib.pyplot as plt
 import tensorflow as tf
+from main_MAF_classification import load_dataset
 
 
 def train(config: Dict):
-    for class_index in tqdm(range(config['train']['n_classes']), desc='Classes'):
-        # set the reset flag for training tensorflow function:
-        shoud_reset = True
+    # load data:
+    if config['train']['data_type'] == 'real_data':
+        batched_train_data_list, train_data_list, val_data_list, test_data_list = load_dataset(config=config, split_data_again=config['train']['real_data']['split_data_again'])
+        n_classes = len(batched_train_data_list)
+    elif config['train']['data_type'] == 'toy_data':
+        n_classes = config['train']['toy_data']['n_classes']
 
+    for class_index in tqdm(range(n_classes), desc='Classes'):
         # dataset:
-        dataset = Dataset(dataset_name=config['train']['dataset_name'], batch_size=config['train']['batch_size'], data_size=config['train']['dataset_size'], classification=True, category=class_index)
-        batched_train_data, train_data, val_data, test_data = dataset.get_data2()
-        if not os.path.exists(config['train']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/data/"): os.makedirs(config['train']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/data/")
-        np.save(config['train']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/data/train_data.npy", train_data)
-        np.save(config['train']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/data/val_data.npy", val_data)
-        np.save(config['train']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/data/test_data.npy", test_data)
+        if config['train']['data_type'] == 'toy_data':
+            dataset = Dataset(dataset_name=config['train']['toy_data']['dataset_name'], batch_size=config['train']['batch_size'], data_size=config['train']['toy_data']['dataset_size'], classification=True, category=class_index)
+            batched_train_data, train_data, val_data, test_data = dataset.get_data2()
+        elif config['train']['data_type'] == 'real_data':
+            batched_train_data, train_data, val_data, test_data = batched_train_data_list[class_index], train_data_list[class_index], val_data_list[class_index], test_data_list[class_index]
+        else:
+            raise ValueError('The data_type is config is not valid!')
+
+        # save the data of classes:
+        if not os.path.exists(config['train']['log_path']+f"class_{class_index}/data/"): os.makedirs(config['train']['log_path']+f"class_{class_index}/data/")
+        np.save(config['train']['log_path']+f"class_{class_index}/data/train_data.npy", train_data)
+        np.save(config['train']['log_path']+f"class_{class_index}/data/val_data.npy", val_data)
+        np.save(config['train']['log_path']+f"class_{class_index}/data/test_data.npy", test_data)
         n_dimensions = train_data.shape[1]
         if config['train']['plot_data']:
             if n_dimensions != 2: raise AssertionError('The dimensionality of data is not 2 and cannot be plotted! Turn off plot_data in the config.')
             sample_batch = next(iter(batched_train_data))
-            plot_samples_2d(sample_batch, path=config['train']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/plots/", name='dataset')
+            plot_samples_2d(sample_batch, path=config['train']['log_path']+f"class_{class_index}/plots/", name='dataset')
 
         # GMM train:
         gmm = GaussianMixture(n_components=config['train']['n_components'], random_state=0).fit(X=train_data)
 
         # save the gmm model:
-        path_save = config['train']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/"
+        path_save = config['train']['log_path']+f"class_{class_index}/"
         if not os.path.exists(path_save): os.makedirs(path_save)
         with open(path_save+'gmm.pickle', 'wb') as handle:
             pickle.dump(gmm, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 def eval(config: Dict) -> Tuple[List[int], List[int], np.ndarray, List[float], List[float]]:
+    # get the number of classes:
+    if config['train']['data_type'] == 'toy_data':
+        n_classes = config['train']['toy_data']['n_classes']
+    elif config['train']['data_type'] == 'real_data':
+        n_classes = len([f.path for f in os.scandir(config['train']['log_path']) if f.is_dir() and 'class_' in f.path])
+
     # load test data:
-    for class_index in range(config['train']['n_classes']):
-        test_data = np.load(config['train']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/data/test_data.npy")
+    for class_index in range(n_classes):
+        test_data = np.load(config['train']['log_path']+f"class_{class_index}/data/test_data.npy")
         test_label = [class_index for i in range(test_data.shape[0])]
         if class_index == 0: 
             X_test = test_data.copy()
@@ -51,10 +70,10 @@ def eval(config: Dict) -> Tuple[List[int], List[int], np.ndarray, List[float], L
             X_test = np.vstack((X_test, test_data))
             y_test.extend(test_label)
 
-    pred_prob = np.zeros((X_test.shape[0], config['train']['n_classes']))
-    for class_index in tqdm(range(config['train']['n_classes']), desc='Classes'):
+    pred_prob = np.zeros((X_test.shape[0], n_classes))
+    for class_index in tqdm(range(n_classes), desc='Classes'):
         # load the model for this class:
-        path_save = config['train']['log_path']+f"{config['train']['dataset_name']}/class_{class_index}/"
+        path_save = config['train']['log_path']+f"class_{class_index}/"
         with open(path_save+'gmm.pickle', 'rb') as handle:
             gmm = pickle.load(handle)
 
@@ -67,6 +86,18 @@ def eval(config: Dict) -> Tuple[List[int], List[int], np.ndarray, List[float], L
     accuracy = accuracy_score(y_true=y_test, y_pred=y_pred)
     f1score = f1_score(y_true=y_test, y_pred=y_pred)
     print(f'accuracy: {accuracy}, f1 score: {f1score}')
+
+    # save the predicted labels:
+    df = pd.DataFrame()
+    df['y_true'] = y_test
+    df['y_pred'] = y_pred
+    df.loc[0, 'accuracy'] = accuracy
+    df.loc[0, 'f1score'] = f1score
+    df_X = pd.DataFrame(X_test)
+    if not os.path.exists(config['eval']['log_path']): os.makedirs(config['eval']['log_path'])
+    df.to_csv(config['eval']['log_path']+'df_predicted.csv', index=False)
+    df_X.to_csv(config['eval']['log_path']+'df_X.csv', index=False)
+
     return y_pred, y_test, X_test, accuracy, f1score
 
 def eval_mesh(config: Dict) -> Tuple[List[int], np.ndarray, int]:

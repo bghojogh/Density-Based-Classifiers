@@ -1,13 +1,25 @@
 {
     "stage": "train",
     "train": {
+        "data_type": "toy_data",
+        "real_data": {
+            "train_data_path": "./dataset/SAHeart/SAHeart.csv",
+            "test_data_path": null,
+            "val_data_path": null,
+            "split_data_again": true,
+            "features": ["sbp", "tobacco", "ldl", "adiposity", "famhist", "typea", "obesity", "alcohol", "age"],
+            "label_feature": "chd",
+            "categorical_features": ["famhist"]
+        },
+        "toy_data": {
+            "dataset_name": "circles",
+            "dataset_size": 2000,
+            "n_classes": 2
+        },
         "log_path": "./log_train/",
-        "dataset_name": "circles",
-        "dataset_size": 2000,
         "batch_size": 800,
-        "n_classes": 2,
-        "n_components": 1, 
-        "plot_data": true
+        "n_components": 5, 
+        "plot_data": false
     },
     "eval": {
         "log_path": "./log_eval/"

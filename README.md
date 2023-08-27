@@ -17,7 +17,7 @@ conda install -c anaconda pandas
 conda install -c anaconda scikit-learn
 ```
 
-# Config files for the datasets:
+# Config of MAF classifier for the datasets:
 
 - Toy data:
 
@@ -89,6 +89,72 @@ conda install -c anaconda scikit-learn
         "delta_stop_in_early_stopping": 1000,
         "frequency_validation": 100,
         "frequency_plot": 1000,
+        "plot_data": false
+    },
+    "eval": {
+        "log_path": "./log_eval/"
+    }
+}
+```
+
+# Config of GMM classifier for the datasets:
+
+- Toy data:
+
+```json
+{
+    "stage": "train",
+    "train": {
+        "data_type": "toy_data",
+        "real_data": {
+            "train_data_path": "./dataset/SAHeart/SAHeart.csv",
+            "test_data_path": null,
+            "val_data_path": null,
+            "split_data_again": true,
+            "features": ["sbp", "tobacco", "ldl", "adiposity", "famhist", "typea", "obesity", "alcohol", "age"],
+            "label_feature": "chd",
+            "categorical_features": ["famhist"]
+        },
+        "toy_data": {
+            "dataset_name": "circles",
+            "dataset_size": 2000,
+            "n_classes": 2
+        },
+        "log_path": "./log_train/",
+        "batch_size": 800,
+        "n_components": 5, 
+        "plot_data": false
+    },
+    "eval": {
+        "log_path": "./log_eval/"
+    }
+}
+```
+
+- SA-Heart dataset:
+
+```json
+{
+    "stage": "train",
+    "train": {
+        "data_type": "real_data",
+        "real_data": {
+            "train_data_path": "./dataset/SAHeart/SAHeart.csv",
+            "test_data_path": null,
+            "val_data_path": null,
+            "split_data_again": true,
+            "features": ["sbp", "tobacco", "ldl", "adiposity", "famhist", "typea", "obesity", "alcohol", "age"],
+            "label_feature": "chd",
+            "categorical_features": ["famhist"]
+        },
+        "toy_data": {
+            "dataset_name": "circles",
+            "dataset_size": 2000,
+            "n_classes": 2
+        },
+        "log_path": "./log_train/",
+        "batch_size": 800,
+        "n_components": 5, 
         "plot_data": false
     },
     "eval": {
