@@ -21,10 +21,10 @@ from typing import Dict, List, Tuple
 tf.random.set_seed(1234)
 
 
-def load_dataset(config: Dict):
+def load_dataset(config: Dict, split_data_again: bool):
     # read data:
     path = config['train']['log_path']+f"data/"
-    if config['train']['real_data']['split_data_again']:
+    if split_data_again:
         if config['train']['real_data']['test_data_path'] is not None:
             # train:
             df_train = pd.read_csv(config['train']['real_data']['train_data_path'])
@@ -48,19 +48,19 @@ def load_dataset(config: Dict):
             X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.25, random_state=42) # 0.25 x 0.8 = 0.2
         # save the train, test, and val data:
         if not os.path.exists(path): os.makedirs(path)
-        np.save(path+'X_train.npy', X_train)
-        np.save(path+'X_val.npy', X_val)
-        np.save(path+'X_test.npy', X_test)
-        np.save(path+'y_train.npy', y_train)
-        np.save(path+'y_val.npy', y_val)
-        np.save(path+'y_test.npy', y_test)
+        X_train.to_csv(path+'X_train.csv', index=False)
+        X_val.to_csv(path+'X_val.csv', index=False)
+        X_test.to_csv(path+'X_test.csv', index=False)
+        y_train.to_csv(path+'y_train.csv', index=False)
+        y_val.to_csv(path+'y_val.csv', index=False)
+        y_test.to_csv(path+'y_test.csv', index=False)
     else:
-        X_train = np.load(path+'X_train.npy')
-        X_val = np.load(path+'X_val.npy')
-        X_test = np.load(path+'X_test.npy')
-        y_train = np.load(path+'y_train.npy')
-        y_val = np.load(path+'y_val.npy')
-        y_test = np.load(path+'y_test.npy')
+        X_train = pd.read_csv(path+'X_train.csv')
+        X_val = pd.read_csv(path+'X_val.csv')
+        X_test = pd.read_csv(path+'X_test.csv')
+        y_train = pd.read_csv(path+'y_train.csv')
+        y_val = pd.read_csv(path+'y_val.csv')
+        y_test = pd.read_csv(path+'y_test.csv')
     
     # numerical and categorical features:
     categorical_features = config['train']['real_data']['categorical_features']
@@ -91,6 +91,9 @@ def load_dataset(config: Dict):
     X_train_processed = X_train_processed.astype(np.float32)
     X_test_processed = X_test_processed.astype(np.float32)
     X_val_processed = X_val_processed.astype(np.float32)
+    y_train = y_train.values.ravel()
+    y_test = y_test.values.ravel()
+    y_val = y_val.values.ravel()
 
     # split to classes:
     batched_train_data_list, train_data_list, val_data_list, test_data_list = [], [], [], []
@@ -118,9 +121,12 @@ def train(config: Dict) -> None:
 
     # load data:
     if config['train']['data_type'] == 'real_data':
-        batched_train_data_list, train_data_list, val_data_list, test_data_list = load_dataset(config=config)
+        batched_train_data_list, train_data_list, val_data_list, test_data_list = load_dataset(config=config, split_data_again=config['train']['real_data']['split_data_again'])
+        n_classes = len(batched_train_data_list)
+    elif config['train']['data_type'] == 'toy_data':
+        n_classes = config['train']['toy_data']['n_classes']
 
-    for class_index in tqdm(range(config['train']['n_classes']), desc='Classes'):
+    for class_index in tqdm(range(n_classes), desc='Classes'):
         # set the reset flag for training tensorflow function:
         shoud_reset = True
 
@@ -251,7 +257,7 @@ def train(config: Dict) -> None:
         if config['train']['plot_data']:
             plot_samples_2d(maf.sample(1000), path=config['train']['log_path']+f"class_{class_index}/plots/", name='evaluate2')
 
-def load_checkpoint(config: Dict, class_index: int) -> tfp.distributions.TransformedDistribution:
+def load_checkpoint(config: Dict, class_index: int, n_dimensions: int) -> tfp.distributions.TransformedDistribution:
     # settings for the network:
     hidden_shape = config['train']['hidden_shape']  # hidden shape for MADE network of MAF
     layers = config['train']['layers']  # number of layers of the flow
@@ -266,14 +272,14 @@ def load_checkpoint(config: Dict, class_index: int) -> tfp.distributions.Transfo
     bijectors = []
     for i in range(0, layers):
         bijectors.append(tfb.MaskedAutoregressiveFlow(shift_and_log_scale_fn = Made(params=2, hidden_units=hidden_shape, activation="relu")))
-        bijectors.append(tfb.Permute(permutation=[1, 0]))  # data permutation after layers of MAF
+        bijectors.append(tfb.Permute(permutation=[i for i in range(n_dimensions)][::-1]))  # data permutation after layers of MAF
 
     bijector = tfb.Chain(bijectors=list(reversed(bijectors)), name='chain_of_maf')
 
     maf = tfd.TransformedDistribution(
-            distribution=tfd.Sample(base_dist, sample_shape=[2]),
-            bijector=bijector,
-        )
+        distribution=tfd.Sample(base_dist, sample_shape=[n_dimensions]),
+        bijector=bijector,
+    )
 
     # initialize flow
     samples = maf.sample()
@@ -298,8 +304,14 @@ def load_checkpoint(config: Dict, class_index: int) -> tfp.distributions.Transfo
     return maf
 
 def eval(config: Dict) -> Tuple[List[int], List[int], np.ndarray, List[float], List[float]]:
-    # load test data:
-    for class_index in range(config['train']['n_classes']):
+    # get the number of classes:
+    if config['train']['data_type'] == 'toy_data':
+        n_classes = config['train']['toy_data']['n_classes']
+    elif config['train']['data_type'] == 'real_data':
+        n_classes = len([f.path for f in os.scandir(config['train']['log_path']) if f.is_dir() and 'class_' in f.path])
+
+    # load data:
+    for class_index in range(n_classes):
         test_data = np.load(config['train']['log_path']+f"class_{class_index}/data/test_data.npy")
         test_label = [class_index for i in range(test_data.shape[0])]
         if class_index == 0: 
@@ -309,10 +321,10 @@ def eval(config: Dict) -> Tuple[List[int], List[int], np.ndarray, List[float], L
             X_test = np.vstack((X_test, test_data))
             y_test.extend(test_label)
 
-    pred_prob = np.zeros((X_test.shape[0], config['train']['n_classes']))
-    for class_index in tqdm(range(config['train']['n_classes']), desc='Classes'):
+    pred_prob = np.zeros((X_test.shape[0], n_classes))
+    for class_index in tqdm(range(n_classes), desc='Classes'):
         # load the checkpoint for this class:
-        maf = load_checkpoint(config=config, class_index=class_index)
+        maf = load_checkpoint(config=config, class_index=class_index, n_dimensions=X_test.shape[1])
 
         # perform on test dataset
         t_start = time.time()
@@ -337,6 +349,18 @@ def eval(config: Dict) -> Tuple[List[int], List[int], np.ndarray, List[float], L
     accuracy = accuracy_score(y_true=y_test, y_pred=y_pred)
     f1score = f1_score(y_true=y_test, y_pred=y_pred)
     print(f'accuracy: {accuracy}, f1 score: {f1score}')
+
+    # save the predicted labels:
+    df = pd.DataFrame()
+    df['y_true'] = y_test
+    df['y_pred'] = y_pred
+    df.loc[0, 'accuracy'] = accuracy
+    df.loc[0, 'f1score'] = f1score
+    df_X = pd.DataFrame(X_test)
+    if not os.path.exists(config['eval']['log_path']): os.makedirs(config['eval']['log_path'])
+    df.to_csv(config['eval']['log_path']+'df_predicted.csv', index=False)
+    df_X.to_csv(config['eval']['log_path']+'df_X.csv', index=False)
+
     return y_pred, y_test, X_test, accuracy, f1score
 
 def eval_mesh(config: Dict) -> Tuple[List[int], np.ndarray, int]:
@@ -351,7 +375,7 @@ def eval_mesh(config: Dict) -> Tuple[List[int], np.ndarray, int]:
     pred_prob = np.zeros((X_test.shape[0], config['train']['n_classes']))
     for class_index in tqdm(range(config['train']['n_classes']), desc='Classes'):
         # load the checkpoint for this class:
-        maf = load_checkpoint(config=config, class_index=class_index)
+        maf = load_checkpoint(config=config, class_index=class_index, n_dimensions=X_test.shape[1])
 
         # perform on test dataset
         t_start = time.time()

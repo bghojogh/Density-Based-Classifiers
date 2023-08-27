@@ -13,11 +13,11 @@
         },
         "toy_data": {
             "dataset_name": "circles",
-            "dataset_size": 2000
+            "dataset_size": 2000,
+            "n_classes": 2
         },
         "log_path": "./log_train/",
         "batch_size": 800,
-        "n_classes": 2,
         "hidden_shape": [200, 200],
         "layers": 12,
         "base_lr": 1e-3,
