@@ -1,7 +1,7 @@
 {
     "stage": "train",
     "train": {
-        "data_type": "toy_data",
+        "data_type": "real_data",
         "real_data": {
             "train_data_path": "./dataset/SAHeart/SAHeart.csv",
             "test_data_path": null,
@@ -18,10 +18,11 @@
         },
         "log_path": "./log_train/",
         "batch_size": 800,
-        "n_components": 5, 
+        "n_components": 3, 
         "plot_data": false
     },
     "eval": {
-        "log_path": "./log_eval/"
+        "log_path": "./log_eval/",
+        "use_posterior": true
     }
 }

@@ -1,7 +1,7 @@
 {
     "stage": "train",
     "train": {
-        "data_type": "toy_data",
+        "data_type": "real_data",
         "real_data": {
             "train_data_path": "./dataset/SAHeart/SAHeart.csv",
             "test_data_path": null,
@@ -20,8 +20,8 @@
         "batch_size": 800,
         "hidden_shape": [200, 200],
         "layers": 12,
-        "base_lr": 1e-3,
-        "end_lr": 1e-4,
+        "base_lr": 1e-5,
+        "end_lr": 1e-6,
         "max_epochs": 5e3,
         "delta_stop_in_early_stopping": 1000,
         "frequency_validation": 100,
@@ -29,6 +29,7 @@
         "plot_data": false
     },
     "eval": {
-        "log_path": "./log_eval/"
+        "log_path": "./log_eval/",
+        "use_posterior": true
     }
 }

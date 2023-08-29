@@ -53,7 +53,8 @@ conda install -c anaconda scikit-learn
         "plot_data": false
     },
     "eval": {
-        "log_path": "./log_eval/"
+        "log_path": "./log_eval/",
+        "use_posterior": true
     }
 }
 ```
@@ -92,7 +93,8 @@ conda install -c anaconda scikit-learn
         "plot_data": false
     },
     "eval": {
-        "log_path": "./log_eval/"
+        "log_path": "./log_eval/",
+        "use_posterior": true
     }
 }
 ```
@@ -126,7 +128,8 @@ conda install -c anaconda scikit-learn
         "plot_data": false
     },
     "eval": {
-        "log_path": "./log_eval/"
+        "log_path": "./log_eval/",
+        "use_posterior": true
     }
 }
 ```
@@ -154,11 +157,12 @@ conda install -c anaconda scikit-learn
         },
         "log_path": "./log_train/",
         "batch_size": 800,
-        "n_components": 5, 
+        "n_components": 3, 
         "plot_data": false
     },
     "eval": {
-        "log_path": "./log_eval/"
+        "log_path": "./log_eval/",
+        "use_posterior": true
     }
 }
 ```

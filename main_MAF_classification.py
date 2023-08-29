@@ -165,7 +165,8 @@ def train(config: Dict) -> None:
         # build the network:
         bijectors = []
         for i in range(0, layers):
-            bijectors.append(tfb.MaskedAutoregressiveFlow(shift_and_log_scale_fn = Made(params=2, hidden_units=hidden_shape, activation="relu")))
+            bijectors.append(tfb.MaskedAutoregressiveFlow(shift_and_log_scale_fn=Made(params=2, hidden_units=hidden_shape, activation="relu", event_shape=n_dimensions)))
+            # it is equivalent to --> bijectors.append(tfb.MaskedAutoregressiveFlow(shift_and_log_scale_fn=Made(params=2, hidden_units=hidden_shape, activation="relu", event_shape=n_dimensions), event_ndims=1)) #--> event_ndims is the rank
             bijectors.append(tfb.Permute(permutation=[i for i in range(n_dimensions)][::-1]))  # data permutation after layers of MAF
 
         bijector = tfb.Chain(bijectors=list(reversed(bijectors)), name='chain_of_maf')
@@ -310,6 +311,14 @@ def eval(config: Dict) -> Tuple[List[int], List[int], np.ndarray, List[float], L
     elif config['train']['data_type'] == 'real_data':
         n_classes = len([f.path for f in os.scandir(config['train']['log_path']) if f.is_dir() and 'class_' in f.path])
 
+    # load training data:
+    if config['eval']['use_posterior']:
+        population_of_classes = []
+        for class_index in range(n_classes):
+            train_data = np.load(config['train']['log_path']+f"class_{class_index}/data/train_data.npy")
+            population_of_classes.append(train_data.shape[0])
+        priors_of_classes = [population_of_class/np.sum(population_of_classes) for population_of_class in population_of_classes]
+
     # load data:
     for class_index in range(n_classes):
         test_data = np.load(config['train']['log_path']+f"class_{class_index}/data/test_data.npy")
@@ -334,6 +343,8 @@ def eval(config: Dict) -> Tuple[List[int], List[int], np.ndarray, List[float], L
         # calculate the predicted probabilities:
         prob = maf.prob(X_test)
         prob = prob.numpy()
+        if config['eval']['use_posterior']:
+            prob = prob * priors_of_classes[class_index]
         pred_prob[:, class_index] = prob
 
         # plot density estimation of the best model

@@ -59,6 +59,14 @@ def eval(config: Dict) -> Tuple[List[int], List[int], np.ndarray, List[float], L
     elif config['train']['data_type'] == 'real_data':
         n_classes = len([f.path for f in os.scandir(config['train']['log_path']) if f.is_dir() and 'class_' in f.path])
 
+    # load training data:
+    if config['eval']['use_posterior']:
+        population_of_classes = []
+        for class_index in range(n_classes):
+            train_data = np.load(config['train']['log_path']+f"class_{class_index}/data/train_data.npy")
+            population_of_classes.append(train_data.shape[0])
+        priors_of_classes = [population_of_class/np.sum(population_of_classes) for population_of_class in population_of_classes]
+
     # load test data:
     for class_index in range(n_classes):
         test_data = np.load(config['train']['log_path']+f"class_{class_index}/data/test_data.npy")
@@ -79,6 +87,8 @@ def eval(config: Dict) -> Tuple[List[int], List[int], np.ndarray, List[float], L
 
         # calculate the predicted probabilities:
         prob = np.exp(gmm.score_samples(X_test))
+        if config['eval']['use_posterior']:
+            prob = prob * priors_of_classes[class_index]
         pred_prob[:, class_index] = prob
 
     # calculate the predicted classes:
