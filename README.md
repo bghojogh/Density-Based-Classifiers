@@ -1,4 +1,11 @@
-# Normalizing-Flow-Classifier
+# Density Based Classifiers (GMM and MAF)
+
+This is the code for the following paper:
+- Benyamin Ghojogh, Milad Amir Toutounchian, "Probabilistic Classification by Density Estimation Using Gaussian Mixture Model and Masked Autoregressive Flow", arXiv, 2023. 
+
+The classifiers in this paper and code are:
+- Gaussian Mixture Model (GMM)
+- Masked Autoregressive Flow (MAF), containing normalizing flows and Masked Autoencoder for Distribution Estimation (MADE)
 
 # Related repositories
 
