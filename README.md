@@ -1,7 +1,8 @@
 # Density Based Classifiers (GMM and MAF)
 
 This is the code for the following paper:
-- Benyamin Ghojogh, Milad Amir Toutounchian, "Probabilistic Classification by Density Estimation Using Gaussian Mixture Model and Masked Autoregressive Flow", arXiv, 2023. 
+- Benyamin Ghojogh, Milad Amir Toutounchian, "Probabilistic Classification by Density Estimation Using Gaussian Mixture Model and Masked Autoregressive Flow", arXiv, 2023.
+- Link of paper: https://arxiv.org/abs/2310.10843
 
 The classifiers in this paper and code are:
 - Gaussian Mixture Model (GMM)
